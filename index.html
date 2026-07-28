@@ -134,16 +134,17 @@
         }
 
         .word-main {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: bold;
             color: var(--text);
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         .pronunciation {
-            color: #666;
-            font-size: 1rem;
+            color: #e65100; /* 特別標示主單字發音顏色 */
+            font-size: 1.1rem;
             margin-bottom: 10px;
+            font-family: 'Courier New', Courier, monospace; /* 讓音標更清晰 */
         }
 
         .meanings-container {
@@ -162,7 +163,7 @@
             font-weight: 500;
         }
 
-        /* 例句與逐字拆解 (手機友善) */
+        /* 例句與逐字拆解 */
         .example-section {
             background: #fafafa;
             border-radius: 10px;
@@ -179,8 +180,17 @@
 
         .example-full {
             font-weight: 600;
-            font-size: 1.05rem;
-            margin-bottom: 4px;
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        /* 新增：整句例句的音標樣式 */
+        .example-pronunciation {
+            color: #4a5568;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            font-style: italic;
+            font-family: 'Courier New', Courier, monospace;
         }
 
         .example-translation {
@@ -209,7 +219,7 @@
         }
 
         .chip-word { font-weight: bold; font-size: 0.95rem; color: #1a202c; }
-        .chip-pron { font-size: 0.7rem; color: #718096; }
+        .chip-pron { font-size: 0.75rem; color: #e65100; margin: 2px 0; }
         .chip-meaning { font-size: 0.75rem; color: var(--primary-dark); font-weight: 500; }
 
         /* 按鈕風格 */
@@ -226,7 +236,6 @@
             transition: background 0.2s;
         }
         .btn:hover { background-color: var(--primary-dark); }
-        .btn-secondary { background-color: #6c757d; }
         .btn-reset { background-color: var(--accent); margin-top: 10px; }
 
         .hidden { display: none !important; }
@@ -252,7 +261,6 @@
         <button id="btn-toggle-settings" class="btn-icon">⚙️ 設定</button>
     </header>
 
-    <!-- 遊戲化數據列 -->
     <div class="stats-panel">
         <div class="stat-item">
             <span class="stat-value" id="ui-points">0</span>
@@ -268,7 +276,6 @@
         </div>
     </div>
 
-    <!-- 主畫面旁邊的「設定面板」(預設收合，可隨時點開) -->
     <div id="settings-card" class="settings-card hidden">
         <h3>⚙️ 使用者設定</h3>
         <label>Gemini API Key：</label>
@@ -284,16 +291,13 @@
         <button id="btn-save-settings" class="btn">儲存設定並更新單字</button>
     </div>
 
-    <!-- 主要學習內容區塊 -->
     <main id="main-content">
         <div id="loading-indicator" class="loading-text hidden">
-            ✨ AI 正在為您生成今日單字與逐字發音中...
+            ✨ AI 正在為您生成今日單字與精準發音中...
         </div>
 
-        <!-- 單字卡容器 (動態渲染) -->
         <div id="words-container"></div>
 
-        <!-- 底部控制按鈕 -->
         <div id="action-buttons" class="hidden" style="margin-top: 15px;">
             <button id="btn-complete-all" class="btn">✅ 我今天全部學會了！(獲得 10 點)</button>
             <button id="btn-reset-words" class="btn btn-reset">🔄 換一套全新的單字卡</button>
@@ -304,7 +308,6 @@
 <script type="module">
     import { GoogleGenAI } from "@google/genai";
 
-    // 使用者狀態資料
     let userData = {
         apiKey: "",
         languages: ["英文"],
@@ -314,7 +317,6 @@
         lastLearnDate: null
     };
 
-    // DOM 元素
     const elSettingsCard = document.getElementById('settings-card');
     const elBtnToggleSettings = document.getElementById('btn-toggle-settings');
     const elBtnSaveSettings = document.getElementById('btn-save-settings');
@@ -324,7 +326,6 @@
     const elBtnCompleteAll = document.getElementById('btn-complete-all');
     const elBtnResetWords = document.getElementById('btn-reset-words');
 
-    // 初始化 App
     function init() {
         const saved = localStorage.getItem('aiLangData');
         if (saved) {
@@ -334,12 +335,10 @@
         updateStatsUI();
         syncSettingsForm();
 
-        // 開關設定區塊
         elBtnToggleSettings.addEventListener('click', () => {
             elSettingsCard.classList.toggle('hidden');
         });
 
-        // 如果沒有 API Key，主動展開設定
         if (!userData.apiKey) {
             elSettingsCard.classList.remove('hidden');
         } else {
@@ -347,7 +346,6 @@
         }
     }
 
-    // 同步設定選單狀態
     function syncSettingsForm() {
         document.getElementById('input-api-key').value = userData.apiKey || '';
         const checkboxes = document.querySelectorAll('input[name="lang"]');
@@ -356,7 +354,6 @@
         });
     }
 
-    // 儲存設定
     elBtnSaveSettings.addEventListener('click', () => {
         const apiKey = document.getElementById('input-api-key').value.trim();
         const checkedLangs = Array.from(document.querySelectorAll('input[name="lang"]:checked')).map(cb => cb.value);
@@ -378,26 +375,22 @@
         loadDailyWords();
     });
 
-    // 寫入 LocalStorage
     function saveData() {
         localStorage.setItem('aiLangData', JSON.stringify(userData));
         updateStatsUI();
     }
 
-    // 更新面板數據
     function updateStatsUI() {
         document.getElementById('ui-points').innerText = userData.points;
         document.getElementById('ui-streak').innerText = userData.streak;
         document.getElementById('ui-total-days').innerText = userData.totalDays;
     }
 
-    // 取得今天 Date 字串 (YYYY-MM-DD)
     function getTodayStr() {
         const d = new Date();
         return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     }
 
-    // 向 Gemini 請求所有選定語言的單字
     async function loadDailyWords() {
         elWordsContainer.innerHTML = '';
         elLoading.classList.remove('hidden');
@@ -406,13 +399,15 @@
         try {
             const ai = new GoogleGenAI({ apiKey: userData.apiKey });
             
-            // 精心設計的 Prompt
+            // 【重要修改】：加強對音標 (IPA/平假名) 及例句整句音標的要求
             const prompt = `你是一個語言學習專家。請針對以下【指定語言列表】：${JSON.stringify(userData.languages)}，為每一個語言分別挑選 1 個日常生活中極為實用的單字。
 
 請務必嚴格遵循以下要求：
-1. 每個單字列出日常常見的【多個繁體中文意思】。
-2. 例句必須將【每一個字/詞】拆解，並給予對應的音標/發音與繁體中文意思。
-3. 只回傳純 JSON 格式，不要包含任何 markdown 標記（如 \`\`\`json ）。
+1. 主單字必須提供【準確音標或發音】(英文使用 IPA，日文使用平假名，西班牙文使用 IPA)。
+2. 提供日常常見的【多個繁體中文意思】。
+3. 提供一個完整例句，並且必須額外提供該【完整例句的整句音標或發音】。
+4. 例句必須將【每一個字/詞】拆解，每個拆解的字都必須帶有【自己的音標】與繁體中文意思。
+5. 只回傳純 JSON 格式，不要包含任何 markdown 標記（如 \`\`\`json ）。
 
 JSON 回傳格式要求：
 {
@@ -420,15 +415,16 @@ JSON 回傳格式要求：
     {
       "language": "語言名稱",
       "word": "單字",
-      "pronunciation": "單字音標或發音(日文請給平假名)",
+      "pronunciation": "主單字的音標或發音 (例如 /æp.əl/)",
       "meanings": ["常見意思1", "常見意思2"],
-      "exampleSentence": "完整例句",
+      "exampleSentence": "完整例句 (例如 I ate an apple.)",
+      "examplePronunciation": "完整例句的整句音標 (例如 /aɪ eɪt ən ˈæp.əl./)",
       "exampleTranslation": "例句的完整中文翻譯",
       "wordBreakdown": [
         {
           "word": "例句中的字詞",
-          "pronunciation": "發音/音標/羅馬拼音",
-          "meaning": "單字意思"
+          "pronunciation": "該字詞的發音/音標",
+          "meaning": "該字詞意思"
         }
       ]
     }
@@ -454,7 +450,6 @@ JSON 回傳格式要求：
         }
     }
 
-    // 將資料渲染成 HTML 介面
     function renderWords(wordList) {
         elWordsContainer.innerHTML = '';
 
@@ -469,11 +464,12 @@ JSON 回傳格式要求：
                 </div>
             `).join('');
 
+            // 【重要修改】：在例句區塊加入 ${item.examplePronunciation}
             const cardHtml = `
                 <div class="lang-card">
                     <span class="lang-badge">${item.language}</span>
                     <div class="word-main">${item.word}</div>
-                    <div class="pronunciation">${item.pronunciation}</div>
+                    <div class="pronunciation">[ ${item.pronunciation} ]</div>
                     
                     <div class="meanings-container">
                         ${meaningsHtml}
@@ -482,6 +478,7 @@ JSON 回傳格式要求：
                     <div class="example-section">
                         <div class="example-title">💡 日常例句與逐字拆解：</div>
                         <div class="example-full">${item.exampleSentence}</div>
+                        <div class="example-pronunciation">${item.examplePronunciation || ''}</div>
                         <div class="example-translation">${item.exampleTranslation}</div>
                         
                         <div class="breakdown-grid">
@@ -494,7 +491,6 @@ JSON 回傳格式要求：
         });
     }
 
-    // 完成學習點擊事件
     elBtnCompleteAll.addEventListener('click', () => {
         const today = getTodayStr();
         
@@ -523,12 +519,10 @@ JSON 回傳格式要求：
         alert('🎉 太棒了！已紀錄今日學習，並獲得 10 點積分！');
     });
 
-    // 換一組單字
     elBtnResetWords.addEventListener('click', () => {
         loadDailyWords();
     });
 
-    // 啟動專案
     init();
 </script>
 </body>
