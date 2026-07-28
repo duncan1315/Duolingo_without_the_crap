@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 每日語言學習機</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #45a049;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2, h3 { margin-top: 0; }
+        
+        /* 遊戲化數據面板 */
+        .stats-panel {
+            display: flex;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.5em; display: block; }
+        
+        /* 表單與按鈕 */
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: var(--primary-dark); }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        
+        /* 單字卡 */
+        .word-card { text-align: center; }
+        .word-title { font-size: 2.5em; color: var(--primary); margin-bottom: 5px; }
+        .pronunciation { color: #666; font-size: 1.2em; margin-bottom: 15px; }
+        .translation { font-size: 1.5em; margin-bottom: 20px; }
+        .example-box {
+            background: #f9f9f9;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        
+        /* 隱藏與載入狀態 */
+        .hidden { display: none; }
+        .loading { text-align: center; font-style: italic; color: #666; margin: 20px 0; }
+    </style>
+    
+    <!-- 使用 Import Map 來引入 @google/genai -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/genai": "https://esm.sh/@google/genai"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div class="stats-panel">
+        <div class="stat-item">⭐ 積分 <span class="stat-value" id="ui-points">0</span></div>
+        <div class="stat-item">🔥 連續 <span class="stat-value" id="ui-streak">0</span> 天</div>
+        <div class="stat-item">📚 總共 <span class="stat-value" id="ui-total-days">0</span> 天</div>
+    </div>
+
+    <!-- 設定區塊 -->
+    <div id="settings-section" class="card">
+        <h2>⚙️ 使用者設定</h2>
+        <p style="font-size: 0.9em; color: #666;">為了安全起見，請輸入您自己的 Google Gemini API Key。這只會儲存在您的瀏覽器中。</p>
+        
+        <label>Gemini API Key:</label>
+        <input type="password" id="input-api-key" placeholder="AIzaSy...">
+        
+        <label>選擇你想學習的語言 (最多支援5種，目前開放3種):</label>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="lang" value="英文" checked> 英文</label>
+            <label><input type="checkbox" name="lang" value="日文"> 日文</label>
+            <label><input type="checkbox" name="lang" value="西班牙文"> 西班牙文</label>
+        </div>
+        
+        <button id="btn-save-settings">儲存並開始學習</button>
+    </div>
+
+    <!-- 學習區塊 -->
+    <div id="learning-section" class="card hidden">
+        <h2 id="learning-title">今日單字</h2>
+        
+        <div id="loading-indicator" class="loading hidden">AI 正在為您生成單字中，請稍候...</div>
+        
+        <div id="word-content" class="word-card hidden">
+            <div class="word-title" id="display-word">Word</div>
+            <div class="pronunciation" id="display-pronunciation">/wɜːd/</div>
+            <div class="translation" id="display-translation">單字</div>
+            
+            <div class="example-box">
+                <div id="display-ex-sentence" style="font-weight: bold; margin-bottom: 5px;">This is an example.</div>
+                <div id="display-ex-translation" style="color: #555;">這是一個例句。</div>
+            </div>
+            
+            <button id="btn-complete" style="margin-bottom: 10px;">✅ 我學會了！(獲得 10 點)</button>
+            <button id="btn-reset" style="background-color: #ff9800;">🔄 想學更多？再抽一個！</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { GoogleGenAI } from "@google/genai";
+
+    // 資料狀態模型
+    let userData = {
+        apiKey: "",
+        languages: ["英文"],
+        points: 0,
+        streak: 0,
+        totalDays: 0,
+        lastLearnDate: null // 格式: "YYYY-MM-DD"
+    };
+
+    // DOM 元素
+    const elSettings = document.getElementById('settings-section');
+    const elLearning = document.getElementById('learning-section');
+    const elLoading = document.getElementById('loading-indicator');
+    const elWordContent = document.getElementById('word-content');
+    const btnSave = document.getElementById('btn-save-settings');
+    const btnComplete = document.getElementById('btn-complete');
+    const btnReset = document.getElementById('btn-reset');
+
+    // 初始化
+    function init() {
+        const savedData = localStorage.getItem('langLearningData');
+        if (savedData) {
+            userData = { ...userData, ...JSON.parse(savedData) };
+        }
+        updateStatsUI();
+
+        if (userData.apiKey && userData.languages.length > 0) {
+            elSettings.classList.add('hidden');
+            elLearning.classList.remove('hidden');
+            checkDailyProgress();
+        } else {
+            // 填入既有設定
+            if(userData.apiKey) document.getElementById('input-api-key').value = userData.apiKey;
+        }
+    }
+
+    // 儲存資料到 LocalStorage
+    function saveData() {
+        localStorage.setItem('langLearningData', JSON.stringify(userData));
+        updateStatsUI();
+    }
+
+    // 更新遊戲化數據 UI
+    function updateStatsUI() {
+        document.getElementById('ui-points').innerText = userData.points;
+        document.getElementById('ui-streak').innerText = userData.streak;
+        document.getElementById('ui-total-days').innerText = userData.totalDays;
+    }
+
+    // 取得今天的日期字串
+    function getTodayString() {
+        const today = new Date();
+        return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    }
+
+    // 檢查每日進度
+    function checkDailyProgress() {
+        const today = getTodayString();
+        // 如果今天還沒學過，或是想要直接載入一個單字
+        generateWord();
+    }
+
+    // 處理設定儲存
+    btnSave.addEventListener('click', () => {
+        const apiKey = document.getElementById('input-api-key').value.trim();
+        const checkedLangs = Array.from(document.querySelectorAll('input[name="lang"]:checked')).map(cb => cb.value);
+        
+        if (!apiKey) {
+            alert('請輸入 API Key！');
+            return;
+        }
+        if (checkedLangs.length === 0) {
+            alert('請至少選擇一種語言！');
+            return;
+        }
+
+        userData.apiKey = apiKey;
+        userData.languages = checkedLangs;
+        saveData();
+        
+        elSettings.classList.add('hidden');
+        elLearning.classList.remove('hidden');
+        generateWord();
+    });
+
+    // 呼叫 Google Gen AI 產生單字
+    async function generateWord() {
+        elWordContent.classList.add('hidden');
+        elLoading.classList.remove('hidden');
+        btnComplete.disabled = false;
+        btnComplete.innerText = "✅ 我學會了！(獲得 10 點)";
+
+        try {
+            // 隨機選一個使用者設定的語言
+            const targetLang = userData.languages[Math.floor(Math.random() * userData.languages.length)];
+            document.getElementById('learning-title').innerText = `今日語言：${targetLang}`;
+
+            // 初始化 Google Gen AI
+            const ai = new GoogleGenAI({ apiKey: userData.apiKey });
+
+            const prompt = `請提供一個日常生活中非常實用的「${targetLang}」單字。
+請務必只回傳純 JSON 格式的文字，不要包含任何 markdown 標記(如 \`\`\`json)，也不要有額外的解釋。
+JSON 格式必須完全符合以下結構：
+{
+  "word": "單字本身",
+  "pronunciation": "發音或音標",
+  "translation": "繁體中文翻譯",
+  "exampleSentence": "包含該單字的日常實用例句",
+  "exampleTranslation": "例句的繁體中文翻譯"
+}`;
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            let responseText = response.text;
+            // 清理可能的 Markdown 標記
+            responseText = responseText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+            
+            const wordData = JSON.parse(responseText);
+
+            // 顯示資料
+            document.getElementById('display-word').innerText = wordData.word;
+            document.getElementById('display-pronunciation').innerText = wordData.pronunciation;
+            document.getElementById('display-translation').innerText = wordData.translation;
+            document.getElementById('display-ex-sentence').innerText = wordData.exampleSentence;
+            document.getElementById('display-ex-translation').innerText = wordData.exampleTranslation;
+
+            elLoading.classList.add('hidden');
+            elWordContent.classList.remove('hidden');
+
+        } catch (error) {
+            console.error(error);
+            elLoading.innerText = "生成失敗，請檢查 API Key 或稍後再試。";
+            alert("API 呼叫失敗，請確保 API Key 正確無誤。");
+            
+            // 讓使用者可以重設 API key
+            elSettings.classList.remove('hidden');
+            elLearning.classList.add('hidden');
+        }
+    }
+
+    // 完成學習按鈕 (計算點數與天數)
+    btnComplete.addEventListener('click', () => {
+        const today = getTodayString();
+        
+        userData.points += 10;
+        
+        if (userData.lastLearnDate !== today) {
+            userData.totalDays += 1;
+            
+            // 計算連續天數
+            if (userData.lastLearnDate) {
+                const lastDate = new Date(userData.lastLearnDate);
+                const currentDate = new Date(today);
+                const diffTime = Math.abs(currentDate - lastDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                
+                if (diffDays === 1) {
+                    userData.streak += 1; // 連續
+                } else if (diffDays > 1) {
+                    userData.streak = 1; // 中斷，重新計算
+                }
+            } else {
+                userData.streak = 1; // 第一次學習
+            }
+            
+            userData.lastLearnDate = today;
+        }
+
+        saveData();
+        
+        btnComplete.innerText = "🎉 已經記錄並獲得點數！";
+        btnComplete.disabled = true;
+    });
+
+    // 重新抽一個單字
+    btnReset.addEventListener('click', () => {
+        generateWord();
+    });
+
+    // 執行初始化
+    init();
+
+</script>
+</body>
+</html>
