@@ -13,6 +13,7 @@
             --card-bg: #ffffff;
             --text: #333333;
             --accent: #FF9800;
+            --danger: #e53935;
         }
 
         * { box-sizing: border-box; }
@@ -40,15 +41,14 @@
             margin-bottom: 12px;
         }
 
-        .title-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
         .title-bar h1 {
             font-size: 1.2rem;
             margin: 0;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 6px;
         }
 
         .btn-icon {
@@ -57,10 +57,13 @@
             padding: 8px 12px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s;
         }
+
+        .btn-icon:hover { background: #f0f0f0; }
 
         .stats-panel {
             display: flex;
@@ -77,8 +80,8 @@
         .stat-value { font-size: 1.3rem; font-weight: bold; display: block; }
         .stat-label { font-size: 0.75rem; opacity: 0.9; }
 
-        /* 設定面板 */
-        .settings-card {
+        /* 面板通用樣式 (設定 & 單字庫) */
+        .panel-card {
             background: var(--card-bg);
             border-radius: 12px;
             padding: 16px;
@@ -87,7 +90,7 @@
             border: 1px solid #e0e0e0;
         }
 
-        .settings-card h3 { margin-top: 0; font-size: 1rem; }
+        .panel-card h3 { margin-top: 0; font-size: 1.05rem; }
 
         input[type="text"], input[type="password"] {
             width: 100%;
@@ -112,6 +115,31 @@
             cursor: pointer;
         }
 
+        /* 單字庫篩選頁籤 */
+        .tab-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .tab-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--secondary);
+            color: white;
+        }
+
         /* 單字卡區塊 */
         .lang-card {
             background: var(--card-bg);
@@ -120,6 +148,14 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border-top: 5px solid var(--secondary);
+            position: relative;
+        }
+
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         .lang-badge {
@@ -130,8 +166,20 @@
             border-radius: 12px;
             font-size: 0.85rem;
             font-weight: bold;
-            margin-bottom: 8px;
         }
+
+        .btn-save-word {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #b78103;
+            padding: 4px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .btn-save-word:hover { background: #ffecb3; }
 
         .word-main {
             font-size: 2.2rem;
@@ -141,10 +189,10 @@
         }
 
         .pronunciation {
-            color: #e65100; /* 特別標示主單字發音顏色 */
+            color: #e65100;
             font-size: 1.1rem;
             margin-bottom: 10px;
-            font-family: 'Courier New', Courier, monospace; /* 讓音標更清晰 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         .meanings-container {
@@ -163,7 +211,7 @@
             font-weight: 500;
         }
 
-        /* 例句與逐字拆解 */
+        /* 例句與拆解卡片 */
         .example-section {
             background: #fafafa;
             border-radius: 10px;
@@ -178,28 +226,17 @@
             font-weight: bold;
         }
 
-        .example-full {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 2px;
-        }
+        .example-full { font-weight: 600; font-size: 1.1rem; margin-bottom: 2px; }
 
-        /* 新增：整句例句的音標樣式 */
         .example-pronunciation {
             color: #4a5568;
             font-size: 0.95rem;
             margin-bottom: 6px;
             font-style: italic;
-            font-family: 'Courier New', Courier, monospace;
         }
 
-        .example-translation {
-            color: #555;
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-        }
+        .example-translation { color: #555; font-size: 0.9rem; margin-bottom: 12px; }
 
-        /* 逐字卡片佈局 */
         .breakdown-grid {
             display: flex;
             flex-wrap: wrap;
@@ -213,10 +250,23 @@
             border-radius: 8px;
             padding: 6px 8px;
             text-align: center;
-            min-width: 60px;
+            min-width: 65px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             flex: 1 1 auto;
+            position: relative;
         }
+
+        .chip-save-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: none;
+            border: none;
+            font-size: 0.7rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .chip-save-btn:hover { opacity: 1; }
 
         .chip-word { font-weight: bold; font-size: 0.95rem; color: #1a202c; }
         .chip-pron { font-size: 0.75rem; color: #e65100; margin: 2px 0; }
@@ -237,12 +287,34 @@
         }
         .btn:hover { background-color: var(--primary-dark); }
         .btn-reset { background-color: var(--accent); margin-top: 10px; }
+        .btn-danger { background-color: var(--danger); margin-top: 20px; }
+        .btn-danger:hover { background-color: #c62828; }
 
         .hidden { display: none !important; }
         .loading-text { text-align: center; padding: 20px; color: #666; font-style: italic; }
+
+        /* 單字庫列表小卡 */
+        .saved-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .saved-card .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .saved-card .delete-btn:hover { color: var(--danger); }
     </style>
 
-    <!-- 匯入 GoogleGenAI SDK -->
     <script type="importmap">
         {
             "imports": {
@@ -258,9 +330,13 @@
         <div class="title-bar">
             <h1>🌍 每日 AI 語言卡</h1>
         </div>
-        <button id="btn-toggle-settings" class="btn-icon">⚙️ 設定</button>
+        <div class="nav-buttons">
+            <button id="btn-toggle-wordbook" class="btn-icon">📖 單字庫</button>
+            <button id="btn-toggle-settings" class="btn-icon">⚙️ 設定</button>
+        </div>
     </header>
 
+    <!-- 遊戲化數據列 -->
     <div class="stats-panel">
         <div class="stat-item">
             <span class="stat-value" id="ui-points">0</span>
@@ -276,12 +352,25 @@
         </div>
     </div>
 
-    <div id="settings-card" class="settings-card hidden">
+    <!-- 📖 專屬單字庫面板 -->
+    <div id="wordbook-card" class="panel-card hidden">
+        <h3>📖 我的收藏單字庫</h3>
+        <div class="tab-group" id="wordbook-tabs">
+            <button class="tab-btn active" data-lang="全部">全部</button>
+            <button class="tab-btn" data-lang="英文">英文</button>
+            <button class="tab-btn" data-lang="日文">日文</button>
+            <button class="tab-btn" data-lang="西班牙文">西班牙文</button>
+        </div>
+        <div id="wordbook-list"></div>
+    </div>
+
+    <!-- ⚙️ 設定面板 -->
+    <div id="settings-card" class="panel-card hidden">
         <h3>⚙️ 使用者設定</h3>
         <label>Gemini API Key：</label>
         <input type="password" id="input-api-key" placeholder="貼上你的 Gemini API Key (AIzaSy...)">
 
-        <label>勾選要學習的語言 (每天都會列出單字)：</label>
+        <label>勾選要學習的語言：</label>
         <div class="checkbox-group">
             <label><input type="checkbox" name="lang" value="英文" checked> 英文</label>
             <label><input type="checkbox" name="lang" value="日文"> 日文</label>
@@ -289,11 +378,13 @@
         </div>
 
         <button id="btn-save-settings" class="btn">儲存設定並更新單字</button>
+        <button id="btn-clear-data" class="btn btn-danger">🗑️ 清除所有紀錄與單字庫</button>
     </div>
 
+    <!-- 主畫面學習區 -->
     <main id="main-content">
         <div id="loading-indicator" class="loading-text hidden">
-            ✨ AI 正在為您生成今日單字與精準發音中...
+            ✨ AI 正在挑選實用日常單字並生成精準發音中...
         </div>
 
         <div id="words-container"></div>
@@ -314,29 +405,60 @@
         points: 0,
         streak: 0,
         totalDays: 0,
-        lastLearnDate: null
+        lastLearnDate: null,
+        savedWords: [],   // 收藏的單字
+        historyWords: []  // 歷史學過的單字清單 (防止重複)
     };
 
+    let activeTab = "全部";
+
+    // DOM 元素
     const elSettingsCard = document.getElementById('settings-card');
+    const elWordbookCard = document.getElementById('wordbook-card');
     const elBtnToggleSettings = document.getElementById('btn-toggle-settings');
+    const elBtnToggleWordbook = document.getElementById('btn-toggle-wordbook');
     const elBtnSaveSettings = document.getElementById('btn-save-settings');
+    const elBtnClearData = document.getElementById('btn-clear-data');
     const elLoading = document.getElementById('loading-indicator');
     const elWordsContainer = document.getElementById('words-container');
     const elActionButtons = document.getElementById('action-buttons');
     const elBtnCompleteAll = document.getElementById('btn-complete-all');
     const elBtnResetWords = document.getElementById('btn-reset-words');
+    const elWordbookList = document.getElementById('wordbook-list');
 
     function init() {
         const saved = localStorage.getItem('aiLangData');
         if (saved) {
             userData = { ...userData, ...JSON.parse(saved) };
+            if(!userData.savedWords) userData.savedWords = [];
+            if(!userData.historyWords) userData.historyWords = [];
         }
         
         updateStatsUI();
         syncSettingsForm();
 
+        // 導覽按鈕邏輯
         elBtnToggleSettings.addEventListener('click', () => {
             elSettingsCard.classList.toggle('hidden');
+            elWordbookCard.classList.add('hidden');
+        });
+
+        elBtnToggleWordbook.addEventListener('click', () => {
+            elWordbookCard.classList.toggle('hidden');
+            elSettingsCard.classList.add('hidden');
+            if (!elWordbookCard.classList.contains('hidden')) {
+                renderWordbook();
+            }
+        });
+
+        // 單字庫頁籤切換
+        document.getElementById('wordbook-tabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-btn')) {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                activeTab = e.target.dataset.lang;
+                renderWordbook();
+            }
         });
 
         if (!userData.apiKey) {
@@ -354,6 +476,7 @@
         });
     }
 
+    // 儲存設定
     elBtnSaveSettings.addEventListener('click', () => {
         const apiKey = document.getElementById('input-api-key').value.trim();
         const checkedLangs = Array.from(document.querySelectorAll('input[name="lang"]:checked')).map(cb => cb.value);
@@ -375,6 +498,29 @@
         loadDailyWords();
     });
 
+    // 清除資料
+    elBtnClearData.addEventListener('click', () => {
+        if (confirm('⚠️ 確定要清除所有紀錄嗎？這將會重置你的積分、連續天數、歷史紀錄與單字庫！')) {
+            localStorage.removeItem('aiLangData');
+            userData = {
+                apiKey: "",
+                languages: ["英文"],
+                points: 0,
+                streak: 0,
+                totalDays: 0,
+                lastLearnDate: null,
+                savedWords: [],
+                historyWords: []
+            };
+            updateStatsUI();
+            syncSettingsForm();
+            elWordsContainer.innerHTML = '';
+            elWordbookList.innerHTML = '';
+            alert('所有紀錄已清空。');
+            location.reload();
+        }
+    });
+
     function saveData() {
         localStorage.setItem('aiLangData', JSON.stringify(userData));
         updateStatsUI();
@@ -391,6 +537,7 @@
         return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     }
 
+    // 向 Gemini 請求單字
     async function loadDailyWords() {
         elWordsContainer.innerHTML = '';
         elLoading.classList.remove('hidden');
@@ -399,14 +546,18 @@
         try {
             const ai = new GoogleGenAI({ apiKey: userData.apiKey });
             
-            // 【重要修改】：加強對音標 (IPA/平假名) 及例句整句音標的要求
-            const prompt = `你是一個語言學習專家。請針對以下【指定語言列表】：${JSON.stringify(userData.languages)}，為每一個語言分別挑選 1 個日常生活中極為實用的單字。
+            // 抓取最後 50 個學過的單字避開
+            const historyList = userData.historyWords.slice(-50);
+
+            const prompt = `你是一個專業且活潑的語言學習專家。請針對以下【指定語言列表】：${JSON.stringify(userData.languages)}，為每個語言分別挑選 1 個實用的日常單字。
 
 請務必嚴格遵循以下要求：
-1. 主單字必須提供【準確音標或發音】(英文使用 IPA，日文使用平假名，西班牙文使用 IPA)。
-2. 提供日常常見的【多個繁體中文意思】。
-3. 提供一個完整例句，並且必須額外提供該【完整例句的整句音標或發音】。
-4. 例句必須將【每一個字/詞】拆解，每個拆解的字都必須帶有【自己的音標】與繁體中文意思。
+1. 避免重複：使用者已學過以下單字：${JSON.stringify(historyList)}。絕對【不能】重複選用這些單字！
+2. 避免簡單打招呼：切勿挑選太基礎或常見的打招呼用語（如 Hello, Konnichiwa, Gracias, Thank you 等）。
+3. 豐富隨機性：請從「美食餐飲、日常購物、交通通勤、心情情緒、工作職場、社交娛樂、天氣居家」等豐富場景中隨機選取實用的日常單字。
+4. 精準發音/假名規範：
+   - 英文/西班牙文：必須給出 IPA 音標。
+   - 日文：【極度重要】主單字、例句發音及拆解字詞，必須全數給出『平假名與羅馬拼音』(例如：たべもの / tabemono)，絕不能留空！
 5. 只回傳純 JSON 格式，不要包含任何 markdown 標記（如 \`\`\`json ）。
 
 JSON 回傳格式要求：
@@ -415,16 +566,16 @@ JSON 回傳格式要求：
     {
       "language": "語言名稱",
       "word": "單字",
-      "pronunciation": "主單字的音標或發音 (例如 /æp.əl/)",
+      "pronunciation": "單字發音/音標(日文務必給平假名與羅馬拼音)",
       "meanings": ["常見意思1", "常見意思2"],
-      "exampleSentence": "完整例句 (例如 I ate an apple.)",
-      "examplePronunciation": "完整例句的整句音標 (例如 /aɪ eɪt ən ˈæp.əl./)",
-      "exampleTranslation": "例句的完整中文翻譯",
+      "exampleSentence": "完整例句",
+      "examplePronunciation": "完整例句整句發音/音標",
+      "exampleTranslation": "例句中文翻譯",
       "wordBreakdown": [
         {
-          "word": "例句中的字詞",
-          "pronunciation": "該字詞的發音/音標",
-          "meaning": "該字詞意思"
+          "word": "例句字詞",
+          "pronunciation": "發音/平假名",
+          "meaning": "中文意思"
         }
       ]
     }
@@ -439,6 +590,14 @@ JSON 回傳格式要求：
             let cleanJsonText = response.text.replace(/```json/gi, '').replace(/```/gi, '').trim();
             const data = JSON.parse(cleanJsonText);
 
+            // 記錄到歷史單字中
+            data.results.forEach(r => {
+                if (!userData.historyWords.includes(r.word)) {
+                    userData.historyWords.push(r.word);
+                }
+            });
+            saveData();
+
             renderWords(data.results);
 
             elLoading.classList.add('hidden');
@@ -450,24 +609,48 @@ JSON 回傳格式要求：
         }
     }
 
+    // 渲染今日單字卡
     function renderWords(wordList) {
         elWordsContainer.innerHTML = '';
 
-        wordList.forEach(item => {
+        wordList.forEach((item, index) => {
             const meaningsHtml = item.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join('');
             
-            const breakdownHtml = item.wordBreakdown.map(b => `
-                <div class="word-chip">
-                    <div class="chip-word">${b.word}</div>
-                    <div class="chip-pron">${b.pronunciation || ''}</div>
-                    <div class="chip-meaning">${b.meaning}</div>
-                </div>
-            `).join('');
+            const breakdownHtml = item.wordBreakdown.map(b => {
+                const bDataStr = encodeURIComponent(JSON.stringify({
+                    language: item.language,
+                    word: b.word,
+                    pronunciation: b.pronunciation,
+                    meanings: [b.meaning],
+                    exampleSentence: item.exampleSentence,
+                    exampleTranslation: item.exampleTranslation
+                }));
+                return `
+                    <div class="word-chip">
+                        <button class="chip-save-btn" onclick="window.saveSingleWord('${bDataStr}')" title="存入單字庫">➕</button>
+                        <div class="chip-word">${b.word}</div>
+                        <div class="chip-pron">${b.pronunciation || ''}</div>
+                        <div class="chip-meaning">${b.meaning}</div>
+                    </div>
+                `;
+            }).join('');
 
-            // 【重要修改】：在例句區塊加入 ${item.examplePronunciation}
+            const mainDataStr = encodeURIComponent(JSON.stringify({
+                language: item.language,
+                word: item.word,
+                pronunciation: item.pronunciation,
+                meanings: item.meanings,
+                exampleSentence: item.exampleSentence,
+                examplePronunciation: item.examplePronunciation,
+                exampleTranslation: item.exampleTranslation
+            }));
+
             const cardHtml = `
                 <div class="lang-card">
-                    <span class="lang-badge">${item.language}</span>
+                    <div class="card-header-row">
+                        <span class="lang-badge">${item.language}</span>
+                        <button class="btn-save-word" onclick="window.saveSingleWord('${mainDataStr}')">🔖 儲存此單字</button>
+                    </div>
                     <div class="word-main">${item.word}</div>
                     <div class="pronunciation">[ ${item.pronunciation} ]</div>
                     
@@ -491,9 +674,71 @@ JSON 回傳格式要求：
         });
     }
 
+    // 全域儲存單字函數
+    window.saveSingleWord = function(encodedData) {
+        const wordObj = JSON.parse(decodeURIComponent(encodedData));
+        const exists = userData.savedWords.some(w => w.word === wordObj.word && w.language === wordObj.language);
+        
+        if (exists) {
+            alert(`「${wordObj.word}」已經在你的單字庫裡囉！`);
+            return;
+        }
+
+        userData.savedWords.push({
+            id: Date.now(),
+            ...wordObj
+        });
+        saveData();
+        alert(`🎉 已將「${wordObj.word}」加入單字庫！`);
+        renderWordbook();
+    };
+
+    // 全域刪除單字函數
+    window.deleteSavedWord = function(id) {
+        userData.savedWords = userData.savedWords.filter(w => w.id !== id);
+        saveData();
+        renderWordbook();
+    };
+
+    // 渲染單字庫
+    function renderWordbook() {
+        elWordbookList.innerHTML = '';
+
+        let filtered = userData.savedWords;
+        if (activeTab !== "全部") {
+            filtered = filtered.filter(w => w.language === activeTab);
+        }
+
+        if (filtered.length === 0) {
+            elWordbookList.innerHTML = `<div style="text-align:center; color:#888; padding:20px;">尚無【${activeTab}】的收藏單字。可以在學習卡片中按 🔖 儲存！</div>`;
+            return;
+        }
+
+        filtered.forEach(w => {
+            const meaningsHtml = w.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join(' ');
+            const cardHtml = `
+                <div class="saved-card">
+                    <button class="delete-btn" onclick="window.deleteSavedWord(${w.id})">🗑️</button>
+                    <span class="lang-badge">${w.language}</span>
+                    <div style="font-size: 1.4rem; font-weight: bold; margin-top: 4px;">${w.word}</div>
+                    <div class="pronunciation" style="font-size:0.95rem;">[ ${w.pronunciation || ''} ]</div>
+                    <div style="margin: 6px 0;">${meaningsHtml}</div>
+                    ${w.exampleSentence ? `
+                        <div style="background:#f8f9fa; padding:8px; border-radius:6px; font-size:0.85rem; margin-top:6px;">
+                            <div style="font-weight:bold;">${w.exampleSentence}</div>
+                            <div style="color:#666;">${w.examplePronunciation || ''}</div>
+                            <div style="color:#444;">${w.exampleTranslation || ''}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            elWordbookList.insertAdjacentHTML('beforeend', cardHtml);
+        });
+    }
+
+    // 完成學習
     elBtnCompleteAll.addEventListener('click', () => {
         const today = getTodayStr();
-        
         userData.points += 10;
 
         if (userData.lastLearnDate !== today) {
@@ -516,9 +761,10 @@ JSON 回傳格式要求：
         }
 
         saveData();
-        alert('🎉 太棒了！已紀錄今日學習，並獲得 10 點積分！');
+        alert('🎉 太棒了！已紀錄今日學習，獲得 10 點積分！');
     });
 
+    // 換一套單字
     elBtnResetWords.addEventListener('click', () => {
         loadDailyWords();
     });
