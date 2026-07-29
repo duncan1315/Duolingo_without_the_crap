@@ -1,4 +1,4 @@
-<!-- 20260729 v1.0.0.2 -->
+<!-- 20260729 v1.0.0.1 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -340,7 +340,7 @@
 <div class="container">
     <header>
         <div class="title-bar">
-            <h1><span id="app-title-text">🌍 每日單字卡</span> <span class="version-badge">v1.0.0.1</span></h1>
+            <h1><span id="app-title-text">🌍 每日單字卡</span> <span id="app-version" class="version-badge"></span></h1>
         </div>
         <div class="nav-buttons">
             <button id="btn-toggle-wordbook" class="btn-icon">📖 單字庫</button>
@@ -417,6 +417,9 @@
 
 <script type="module">
     import { GoogleGenAI } from "@google/genai";
+
+    // 應用程式版本號（更新版本時修改這裡即可）
+    const APP_VERSION = "v1.0.0.1";
 
     // 語言字典 (i18n)
     const i18n = {
@@ -525,6 +528,9 @@
     const elWordbookList = document.getElementById('wordbook-list');
 
     function init() {
+        // 設定版本號
+        document.getElementById('app-version').innerText = APP_VERSION;
+
         const saved = localStorage.getItem('aiLangData');
         if (saved) {
             userData = { ...userData, ...JSON.parse(saved) };
@@ -533,7 +539,7 @@
             if(!userData.dailyWords) userData.dailyWords = [];
         }
         
-        // 偵測並預設 UI 語言 (Feature 3)
+        // 偵測並預設 UI 語言
         if (!userData.uiLang) {
             const browserLang = navigator.language || navigator.userLanguage || "";
             userData.uiLang = browserLang.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en';
@@ -614,7 +620,7 @@
         if (userData.dailyWords && userData.dailyWords.length > 0) renderWords(userData.dailyWords);
     }
 
-    // 更新今日按鈕狀態 (Feature 4)
+    // 更新今日按鈕狀態
     function updateDailyButtonState() {
         const today = getTodayStr();
         const t = i18n[userData.uiLang];
@@ -962,7 +968,7 @@ JSON 回傳格式要求：
         });
     }
 
-    // 完成學習 (Feature 4：每日限一次)
+    // 完成學習
     elBtnCompleteAll.addEventListener('click', () => {
         const today = getTodayStr();
         const t = i18n[userData.uiLang];
