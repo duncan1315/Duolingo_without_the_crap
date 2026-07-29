@@ -409,7 +409,9 @@
         totalDays: 0,
         lastLearnDate: null,
         savedWords: [],   // 收藏的單字
-        historyWords: []  // 歷史學過的單字清單 (防止重複)
+        historyWords: [], // 歷史學過的單字清單 (防止重複)
+        dailyWords: [],
+        dailyWordsDate: null
     };
 
     let activeTab = "全部";
@@ -434,6 +436,7 @@
             userData = { ...userData, ...JSON.parse(saved) };
             if(!userData.savedWords) userData.savedWords = [];
             if(!userData.historyWords) userData.historyWords = [];
+            if(!userData.dailyWords) userData.dailyWords = [];
         }
         
         updateStatsUI();
@@ -497,7 +500,7 @@
         saveData();
 
         elSettingsCard.classList.add('hidden');
-        loadDailyWords();
+        loadDailyWords(true);
     });
 
     // 清除資料
@@ -512,7 +515,9 @@
                 totalDays: 0,
                 lastLearnDate: null,
                 savedWords: [],
-                historyWords: []
+                historyWords: [],
+                dailyWords: [],
+                dailyWordsDate: null
             };
             updateStatsUI();
             syncSettingsForm();
@@ -540,7 +545,16 @@
     }
 
     // 向 Gemini 請求單字
-    async function loadDailyWords() {
+    async function loadDailyWords(forceRefresh = false) {
+        const today = getTodayStr();
+
+        if (!forceRefresh && userData.dailyWordsDate === today && userData.dailyWords && userData.dailyWords.length > 0) {
+            renderWords(userData.dailyWords);
+            elLoading.classList.add('hidden');
+            elActionButtons.classList.remove('hidden');
+            return;
+        }
+
         elWordsContainer.innerHTML = '';
         elLoading.classList.remove('hidden');
         elActionButtons.classList.add('hidden');
@@ -598,6 +612,9 @@ JSON 回傳格式要求：
                     userData.historyWords.push(r.word);
                 }
             });
+
+            userData.dailyWords = data.results;
+            userData.dailyWordsDate = today;
             saveData();
 
             renderWords(data.results);
@@ -768,7 +785,7 @@ JSON 回傳格式要求：
 
     // 換一套單字
     elBtnResetWords.addEventListener('click', () => {
-        loadDailyWords();
+        loadDailyWords(true);
     });
 
     init();
