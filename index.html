@@ -748,6 +748,11 @@
             const historyList = userData.historyWords.slice(-50);
             const targetTransLang = userData.uiLang === 'en' ? 'English' : 'Traditional Chinese (繁體中文)';
 
+            // 根據 UI 決定動態 Prompt 規則
+            const extraRule = userData.uiLang === 'en' 
+                ? '6. 翻譯要求：所有意思與例句翻譯請務必使用「全英文（美式英文，American English）」，絕對不能夾雜中文（例如：請直接輸出 "eating while walking"，不要輸出 "邊走邊吃 (eating while walking)"）。' 
+                : '6. 翻譯要求：所有意思與例句翻譯請務必使用「純繁體中文」。';
+
             const prompt = `你是一個專業且活潑的語言學習專家。請針對以下【指定語言列表】：${JSON.stringify(userData.languages)}，為每個語言分別挑選 1 個實用的日常單字。
 
 請務必嚴格遵循以下要求：
@@ -758,6 +763,7 @@
    - 英文/西班牙文：必須給出 IPA 音標。
    - 日文：【極度重要】主單字、例句發音及拆解字詞，必須全數給出『平假名與羅馬拼音』(例如：たべもの / tabemono)，絕不能留空！
 5. 只回傳純 JSON 格式，不要包含任何 markdown 標記（如 \`\`\`json ）。
+${extraRule}
 
 JSON 回傳格式要求：
 {
@@ -766,15 +772,15 @@ JSON 回傳格式要求：
       "language": "語言名稱",
       "word": "單字",
       "pronunciation": "單字發音/音標(日文務必給平假名與羅馬拼音)",
-      "meanings": ["常見意思1 (in ${targetTransLang})", "常見意思2"],
+      "meanings": ["常見意思1 (僅限 ${targetTransLang})", "常見意思2"],
       "exampleSentence": "完整例句",
       "examplePronunciation": "完整例句整句發音/音標",
-      "exampleTranslation": "例句翻譯 (in ${targetTransLang})",
+      "exampleTranslation": "例句翻譯 (僅限 ${targetTransLang})",
       "wordBreakdown": [
         {
           "word": "例句字詞",
           "pronunciation": "發音/平假名",
-          "meaning": "意思 (in ${targetTransLang})"
+          "meaning": "意思 (僅限 ${targetTransLang})"
         }
       ]
     }
