@@ -544,6 +544,18 @@
         return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     }
 
+    const MODEL_FALLBACK_LIST = ['gemini-3.5-flash', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
+
+    function isQuotaExceededError(err) {
+        if (err && err.status === 429) return true;
+        if (err && err.code === 429) return true;
+        try {
+            const parsed = JSON.parse(err.message);
+            if (parsed && parsed.error && parsed.error.code === 429) return true;
+        } catch (e) {}
+        return typeof err.message === 'string' && err.message.includes('429');
+    }
+
     // 向 Gemini 請求單字
     async function loadDailyWords(forceRefresh = false) {
         const today = getTodayStr();
@@ -598,10 +610,22 @@ JSON 回傳格式要求：
   ]
 }`;
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-3.1-pro-preview',
-                contents: prompt,
-            });
+            let response = null;
+            for (let i = 0; i < MODEL_FALLBACK_LIST.length; i++) {
+                try {
+                    response = await ai.models.generateContent({
+                        model: MODEL_FALLBACK_LIST[i],
+                        contents: prompt,
+                    });
+                    break;
+                } catch (modelErr) {
+                    const isLastModel = i === MODEL_FALLBACK_LIST.length - 1;
+                    if (!isQuotaExceededError(modelErr) || isLastModel) {
+                        throw modelErr;
+                    }
+                    console.warn(`Quota exceeded for ${MODEL_FALLBACK_LIST[i]}, trying ${MODEL_FALLBACK_LIST[i + 1]}`);
+                }
+            }
 
             let cleanJsonText = response.text.replace(/```json/gi, '').replace(/```/gi, '').trim();
             const data = JSON.parse(cleanJsonText);
