@@ -1,5 +1,4 @@
-<!-- 20260728 v1.0.0.1 -->
-
+<!-- 20260729 v1.0.0.1 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -46,6 +45,15 @@
         .title-bar h1 {
             font-size: 1.2rem;
             margin: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .version-badge {
+            font-size: 0.7rem;
+            color: #777;
+            font-weight: normal;
         }
 
         .nav-buttons {
@@ -94,7 +102,7 @@
 
         .panel-card h3 { margin-top: 0; font-size: 1.05rem; }
 
-        input[type="text"], input[type="password"] {
+        input[type="text"], input[type="password"], select {
             width: 100%;
             padding: 10px;
             margin: 6px 0 12px;
@@ -287,7 +295,9 @@
             width: 100%;
             transition: background 0.2s;
         }
-        .btn:hover { background-color: var(--primary-dark); }
+        .btn:hover:not(:disabled) { background-color: var(--primary-dark); }
+        .btn:disabled { background-color: #9e9e9e !important; cursor: not-allowed; }
+        
         .btn-reset { background-color: var(--accent); margin-top: 10px; }
         .btn-danger { background-color: var(--danger); margin-top: 20px; }
         .btn-danger:hover { background-color: #c62828; }
@@ -330,7 +340,7 @@
 <div class="container">
     <header>
         <div class="title-bar">
-            <h1>🌍 每日單字卡</h1>
+            <h1><span id="app-title-text">🌍 每日單字卡</span> <span class="version-badge">v1.0.0.1</span></h1>
         </div>
         <div class="nav-buttons">
             <button id="btn-toggle-wordbook" class="btn-icon">📖 單字庫</button>
@@ -342,41 +352,48 @@
     <div class="stats-panel">
         <div class="stat-item">
             <span class="stat-value" id="ui-points">0</span>
-            <span class="stat-label">⭐ 總積分</span>
+            <span class="stat-label" id="label-points">⭐ 總積分</span>
         </div>
         <div class="stat-item">
             <span class="stat-value" id="ui-streak">0</span>
-            <span class="stat-label">🔥 連續天數</span>
+            <span class="stat-label" id="label-streak">🔥 連續天數</span>
         </div>
         <div class="stat-item">
             <span class="stat-value" id="ui-total-days">0</span>
-            <span class="stat-label">📚 累積學習</span>
+            <span class="stat-label" id="label-days">📚 累積學習</span>
         </div>
     </div>
 
     <!-- 📖 專屬單字庫面板 -->
     <div id="wordbook-card" class="panel-card hidden">
-        <h3>📖 我的收藏單字庫</h3>
+        <h3 id="wordbook-title">📖 我的收藏單字庫</h3>
         <div class="tab-group" id="wordbook-tabs">
-            <button class="tab-btn active" data-lang="全部">全部</button>
-            <button class="tab-btn" data-lang="英文">英文</button>
-            <button class="tab-btn" data-lang="日文">日文</button>
-            <button class="tab-btn" data-lang="西班牙文">西班牙文</button>
+            <button class="tab-btn active" data-lang="全部" id="tab-all">全部</button>
+            <button class="tab-btn" data-lang="英文" id="tab-en">英文</button>
+            <button class="tab-btn" data-lang="日文" id="tab-ja">日文</button>
+            <button class="tab-btn" data-lang="西班牙文" id="tab-es">西班牙文</button>
         </div>
         <div id="wordbook-list"></div>
     </div>
 
     <!-- ⚙️ 設定面板 -->
     <div id="settings-card" class="panel-card hidden">
-        <h3>⚙️ 使用者設定</h3>
-        <label>Gemini API Key：</label>
+        <h3 id="settings-title">⚙️ 使用者設定</h3>
+        
+        <label id="label-ui-lang">🌐 介面語言 (UI Language)：</label>
+        <select id="select-ui-lang">
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+        </select>
+
+        <label id="label-api-key">Gemini API Key：</label>
         <input type="password" id="input-api-key" placeholder="貼上你的 Gemini API Key (AIzaSy...)">
 
-        <label>勾選要學習的語言：</label>
+        <label id="label-learn-lang">勾選要學習的語言：</label>
         <div class="checkbox-group">
-            <label><input type="checkbox" name="lang" value="英文" checked> 英文</label>
-            <label><input type="checkbox" name="lang" value="日文"> 日文</label>
-            <label><input type="checkbox" name="lang" value="西班牙文"> 西班牙文</label>
+            <label><input type="checkbox" name="lang" value="英文" checked> <span id="lbl-en">英文</span></label>
+            <label><input type="checkbox" name="lang" value="日文"> <span id="lbl-ja">日文</span></label>
+            <label><input type="checkbox" name="lang" value="西班牙文"> <span id="lbl-es">西班牙文</span></label>
         </div>
 
         <button id="btn-save-settings" class="btn">儲存設定並更新單字</button>
@@ -386,7 +403,7 @@
     <!-- 主畫面學習區 -->
     <main id="main-content">
         <div id="loading-indicator" class="loading-text hidden">
-            ✨ AI 正在挑選實用日常單字並生成精準發音中...
+            挑選單字中...
         </div>
 
         <div id="words-container"></div>
@@ -401,15 +418,92 @@
 <script type="module">
     import { GoogleGenAI } from "@google/genai";
 
+    // 語言字典 (i18n)
+    const i18n = {
+        "zh-TW": {
+            title: "🌍 每日單字卡",
+            wordbookBtn: "📖 單字庫",
+            settingsBtn: "⚙️ 設定",
+            statPoints: "⭐ 總積分",
+            statStreak: "🔥 連續天數",
+            statDays: "📚 累積學習",
+            wordbookTitle: "📖 我的收藏單字庫",
+            tabAll: "全部",
+            settingsTitle: "⚙️ 使用者設定",
+            uiLangLabel: "🌐 介面語言 (UI Language)：",
+            apiKeyLabel: "Gemini API Key：",
+            apiKeyPlaceholder: "貼上你的 Gemini API Key (AIzaSy...)",
+            learnLangLabel: "勾選要學習的語言：",
+            saveSettingsBtn: "儲存設定並更新單字",
+            clearDataBtn: "🗑️ 清除所有紀錄與單字庫",
+            loading: "✨ AI 正在挑選實用日常單字並生成精準發音中...",
+            completeBtn: "✅ 我今天全部學會了！(獲得 10 點)",
+            completedBtn: "✅ 今日已完成 (獲得 10 點)",
+            resetBtn: "🔄 換一套全新的單字卡",
+            alertNoKey: "請填入有效的 Gemini API Key！",
+            alertNoLang: "請至少勾選一種語言！",
+            alertClearConfirm: "⚠️ 確定要清除所有紀錄嗎？這將會重置你的積分、連續天數、歷史紀錄與單字庫！",
+            alertCleared: "所有紀錄已清空。",
+            alertWordExists: "已經在你的單字庫裡囉！",
+            alertWordSaved: "已加入單字庫！",
+            alertDailyDone: "🎉 太棒了！已紀錄今日學習，獲得 10 點積分！",
+            alertAlreadyDone: "你今天已經領取過積分囉！明天再來吧！",
+            emptyWordbook: "尚無收藏單字。可以在學習卡片中按 🔖 儲存！",
+            saveWordBtn: "🔖 儲存此單字",
+            exampleTitle: "💡 日常例句與逐字拆解：",
+            loadError: "❌ 載入失敗！請確認 API Key 是否正確，或點擊右上角設定重新嘗試。",
+            langEn: "英文",
+            langJa: "日文",
+            langEs: "西班牙文"
+        },
+        "en": {
+            title: "🌍 Daily Flashcards",
+            wordbookBtn: "📖 Wordbook",
+            settingsBtn: "⚙️ Settings",
+            statPoints: "⭐ Points",
+            statStreak: "🔥 Streak",
+            statDays: "📚 Total Days",
+            wordbookTitle: "📖 My Saved Wordbook",
+            tabAll: "All",
+            settingsTitle: "⚙️ User Settings",
+            uiLangLabel: "🌐 UI Language:",
+            apiKeyLabel: "Gemini API Key:",
+            apiKeyPlaceholder: "Paste your Gemini API Key (AIzaSy...)",
+            learnLangLabel: "Select languages to learn:",
+            saveSettingsBtn: "Save Settings & Update",
+            clearDataBtn: "🗑️ Clear All Data",
+            loading: "✨ AI is picking daily words & generating pronunciations...",
+            completeBtn: "✅ I learned them all today! (+10 pts)",
+            completedBtn: "✅ Completed Today",
+            resetBtn: "🔄 Get a new set of words",
+            alertNoKey: "Please enter a valid Gemini API Key!",
+            alertNoLang: "Please select at least one language!",
+            alertClearConfirm: "⚠️ Are you sure? This will reset your points, streak, history, and wordbook!",
+            alertCleared: "All data cleared.",
+            alertWordExists: "is already in your wordbook!",
+            alertWordSaved: "added to wordbook!",
+            alertDailyDone: "🎉 Great job! Today's learning recorded, +10 points!",
+            alertAlreadyDone: "You already claimed your points for today! Come back tomorrow!",
+            emptyWordbook: "No saved words yet. Click 🔖 on flashcards to save!",
+            saveWordBtn: "🔖 Save Word",
+            exampleTitle: "💡 Examples & Breakdown:",
+            loadError: "❌ Load failed! Please check your API Key or try again in Settings.",
+            langEn: "English",
+            langJa: "Japanese",
+            langEs: "Spanish"
+        }
+    };
+
     let userData = {
         apiKey: "",
         languages: ["英文"],
+        uiLang: null,     // 新增：紀錄介面語系
         points: 0,
         streak: 0,
         totalDays: 0,
         lastLearnDate: null,
-        savedWords: [],   // 收藏的單字
-        historyWords: [], // 歷史學過的單字清單 (防止重複)
+        savedWords: [],   
+        historyWords: [], 
         dailyWords: [],
         dailyWordsDate: null
     };
@@ -439,6 +533,13 @@
             if(!userData.dailyWords) userData.dailyWords = [];
         }
         
+        // 偵測並預設 UI 語言 (Feature 3)
+        if (!userData.uiLang) {
+            const browserLang = navigator.language || navigator.userLanguage || "";
+            userData.uiLang = browserLang.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en';
+        }
+
+        applyI18n();
         updateStatsUI();
         syncSettingsForm();
 
@@ -473,8 +574,68 @@
         }
     }
 
+    // 應用 I18n 翻譯
+    function applyI18n() {
+        const t = i18n[userData.uiLang];
+        
+        document.getElementById('app-title-text').innerText = t.title;
+        document.getElementById('btn-toggle-wordbook').innerText = t.wordbookBtn;
+        document.getElementById('btn-toggle-settings').innerText = t.settingsBtn;
+        
+        document.getElementById('label-points').innerText = t.statPoints;
+        document.getElementById('label-streak').innerText = t.statStreak;
+        document.getElementById('label-days').innerText = t.statDays;
+        
+        document.getElementById('wordbook-title').innerText = t.wordbookTitle;
+        document.getElementById('tab-all').innerText = t.tabAll;
+        document.getElementById('tab-en').innerText = t.langEn;
+        document.getElementById('tab-ja').innerText = t.langJa;
+        document.getElementById('tab-es').innerText = t.langEs;
+        
+        document.getElementById('settings-title').innerText = t.settingsTitle;
+        document.getElementById('label-ui-lang').innerText = t.uiLangLabel;
+        document.getElementById('label-api-key').innerText = t.apiKeyLabel;
+        document.getElementById('input-api-key').placeholder = t.apiKeyPlaceholder;
+        document.getElementById('label-learn-lang').innerText = t.learnLangLabel;
+        
+        document.getElementById('lbl-en').innerText = t.langEn;
+        document.getElementById('lbl-ja').innerText = t.langJa;
+        document.getElementById('lbl-es').innerText = t.langEs;
+        
+        document.getElementById('btn-save-settings').innerText = t.saveSettingsBtn;
+        document.getElementById('btn-clear-data').innerText = t.clearDataBtn;
+        document.getElementById('loading-indicator').innerText = t.loading;
+        document.getElementById('btn-reset-words').innerText = t.resetBtn;
+        
+        updateDailyButtonState();
+        
+        // 如果面板已打開，需要重新渲染翻譯過的內容
+        if (!elWordbookCard.classList.contains('hidden')) renderWordbook();
+        if (userData.dailyWords && userData.dailyWords.length > 0) renderWords(userData.dailyWords);
+    }
+
+    // 更新今日按鈕狀態 (Feature 4)
+    function updateDailyButtonState() {
+        const today = getTodayStr();
+        const t = i18n[userData.uiLang];
+        if (userData.lastLearnDate === today) {
+            elBtnCompleteAll.innerText = t.completedBtn;
+            elBtnCompleteAll.disabled = true;
+        } else {
+            elBtnCompleteAll.innerText = t.completeBtn;
+            elBtnCompleteAll.disabled = false;
+        }
+    }
+
+    // 獲取目前語系的語言映射
+    function getLangDisplayMap() {
+        const t = i18n[userData.uiLang];
+        return { "英文": t.langEn, "日文": t.langJa, "西班牙文": t.langEs };
+    }
+
     function syncSettingsForm() {
         document.getElementById('input-api-key').value = userData.apiKey || '';
+        document.getElementById('select-ui-lang').value = userData.uiLang || 'zh-TW';
         const checkboxes = document.querySelectorAll('input[name="lang"]');
         checkboxes.forEach(cb => {
             cb.checked = userData.languages.includes(cb.value);
@@ -483,21 +644,26 @@
 
     // 儲存設定
     elBtnSaveSettings.addEventListener('click', () => {
+        const t = i18n[userData.uiLang];
         const apiKey = document.getElementById('input-api-key').value.trim();
         const checkedLangs = Array.from(document.querySelectorAll('input[name="lang"]:checked')).map(cb => cb.value);
+        const newUiLang = document.getElementById('select-ui-lang').value;
 
         if (!apiKey) {
-            alert('請填入有效的 Gemini API Key！');
+            alert(t.alertNoKey || '請填入有效的 Gemini API Key！');
             return;
         }
         if (checkedLangs.length === 0) {
-            alert('請至少勾選一種語言！');
+            alert(t.alertNoLang || '請至少勾選一種語言！');
             return;
         }
 
         userData.apiKey = apiKey;
         userData.languages = checkedLangs;
+        userData.uiLang = newUiLang;
+        
         saveData();
+        applyI18n(); 
 
         elSettingsCard.classList.add('hidden');
         loadDailyWords(true);
@@ -505,11 +671,15 @@
 
     // 清除資料
     elBtnClearData.addEventListener('click', () => {
-        if (confirm('⚠️ 確定要清除所有紀錄嗎？這將會重置你的積分、連續天數、歷史紀錄與單字庫！')) {
+        const t = i18n[userData.uiLang];
+        if (confirm(t.alertClearConfirm)) {
             localStorage.removeItem('aiLangData');
+            // 保留原本的介面語言設定
+            const currentUiLang = userData.uiLang;
             userData = {
                 apiKey: "",
                 languages: ["英文"],
+                uiLang: currentUiLang,
                 points: 0,
                 streak: 0,
                 totalDays: 0,
@@ -519,11 +689,12 @@
                 dailyWords: [],
                 dailyWordsDate: null
             };
+            saveData();
             updateStatsUI();
             syncSettingsForm();
             elWordsContainer.innerHTML = '';
             elWordbookList.innerHTML = '';
-            alert('所有紀錄已清空。');
+            alert(t.alertCleared);
             location.reload();
         }
     });
@@ -559,6 +730,7 @@
     // 向 Gemini 請求單字
     async function loadDailyWords(forceRefresh = false) {
         const today = getTodayStr();
+        const t = i18n[userData.uiLang];
 
         if (!forceRefresh && userData.dailyWordsDate === today && userData.dailyWords && userData.dailyWords.length > 0) {
             renderWords(userData.dailyWords);
@@ -573,9 +745,8 @@
 
         try {
             const ai = new GoogleGenAI({ apiKey: userData.apiKey });
-            
-            // 抓取最後 50 個學過的單字避開
             const historyList = userData.historyWords.slice(-50);
+            const targetTransLang = userData.uiLang === 'en' ? 'English' : 'Traditional Chinese (繁體中文)';
 
             const prompt = `你是一個專業且活潑的語言學習專家。請針對以下【指定語言列表】：${JSON.stringify(userData.languages)}，為每個語言分別挑選 1 個實用的日常單字。
 
@@ -595,15 +766,15 @@ JSON 回傳格式要求：
       "language": "語言名稱",
       "word": "單字",
       "pronunciation": "單字發音/音標(日文務必給平假名與羅馬拼音)",
-      "meanings": ["常見意思1", "常見意思2"],
+      "meanings": ["常見意思1 (in ${targetTransLang})", "常見意思2"],
       "exampleSentence": "完整例句",
       "examplePronunciation": "完整例句整句發音/音標",
-      "exampleTranslation": "例句中文翻譯",
+      "exampleTranslation": "例句翻譯 (in ${targetTransLang})",
       "wordBreakdown": [
         {
           "word": "例句字詞",
           "pronunciation": "發音/平假名",
-          "meaning": "中文意思"
+          "meaning": "意思 (in ${targetTransLang})"
         }
       ]
     }
@@ -623,14 +794,12 @@ JSON 回傳格式要求：
                     if (!isQuotaExceededError(modelErr) || isLastModel) {
                         throw modelErr;
                     }
-                    console.warn(`Quota exceeded for ${MODEL_FALLBACK_LIST[i]}, trying ${MODEL_FALLBACK_LIST[i + 1]}`);
                 }
             }
 
             let cleanJsonText = response.text.replace(/```json/gi, '').replace(/```/gi, '').trim();
             const data = JSON.parse(cleanJsonText);
 
-            // 記錄到歷史單字中
             data.results.forEach(r => {
                 if (!userData.historyWords.includes(r.word)) {
                     userData.historyWords.push(r.word);
@@ -642,19 +811,20 @@ JSON 回傳格式要求：
             saveData();
 
             renderWords(data.results);
-
             elLoading.classList.add('hidden');
             elActionButtons.classList.remove('hidden');
 
         } catch (err) {
             console.error(err);
-            elLoading.innerText = "❌ 載入失敗！請確認 API Key 是否正確，或點擊右上角設定重新嘗試。";
+            elLoading.innerText = i18n[userData.uiLang].loadError;
         }
     }
 
     // 渲染今日單字卡
     function renderWords(wordList) {
         elWordsContainer.innerHTML = '';
+        const t = i18n[userData.uiLang];
+        const langMap = getLangDisplayMap();
 
         wordList.forEach((item, index) => {
             const meaningsHtml = item.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join('');
@@ -688,11 +858,13 @@ JSON 回傳格式要求：
                 exampleTranslation: item.exampleTranslation
             }));
 
+            const displayLang = langMap[item.language] || item.language;
+
             const cardHtml = `
                 <div class="lang-card">
                     <div class="card-header-row">
-                        <span class="lang-badge">${item.language}</span>
-                        <button class="btn-save-word" onclick="window.saveSingleWord('${mainDataStr}')">🔖 儲存此單字</button>
+                        <span class="lang-badge">${displayLang}</span>
+                        <button class="btn-save-word" onclick="window.saveSingleWord('${mainDataStr}')">${t.saveWordBtn}</button>
                     </div>
                     <div class="word-main">${item.word}</div>
                     <div class="pronunciation">[ ${item.pronunciation} ]</div>
@@ -702,7 +874,7 @@ JSON 回傳格式要求：
                     </div>
 
                     <div class="example-section">
-                        <div class="example-title">💡 日常例句與逐字拆解：</div>
+                        <div class="example-title">${t.exampleTitle}</div>
                         <div class="example-full">${item.exampleSentence}</div>
                         <div class="example-pronunciation">${item.examplePronunciation || ''}</div>
                         <div class="example-translation">${item.exampleTranslation}</div>
@@ -719,11 +891,12 @@ JSON 回傳格式要求：
 
     // 全域儲存單字函數
     window.saveSingleWord = function(encodedData) {
+        const t = i18n[userData.uiLang];
         const wordObj = JSON.parse(decodeURIComponent(encodedData));
         const exists = userData.savedWords.some(w => w.word === wordObj.word && w.language === wordObj.language);
         
         if (exists) {
-            alert(`「${wordObj.word}」已經在你的單字庫裡囉！`);
+            alert(`「${wordObj.word}」${t.alertWordExists}`);
             return;
         }
 
@@ -732,7 +905,7 @@ JSON 回傳格式要求：
             ...wordObj
         });
         saveData();
-        alert(`🎉 已將「${wordObj.word}」加入單字庫！`);
+        alert(`🎉 ${t.alertWordSaved} ( ${wordObj.word} )`);
         renderWordbook();
     };
 
@@ -746,6 +919,8 @@ JSON 回傳格式要求：
     // 渲染單字庫
     function renderWordbook() {
         elWordbookList.innerHTML = '';
+        const t = i18n[userData.uiLang];
+        const langMap = getLangDisplayMap();
 
         let filtered = userData.savedWords;
         if (activeTab !== "全部") {
@@ -753,16 +928,18 @@ JSON 回傳格式要求：
         }
 
         if (filtered.length === 0) {
-            elWordbookList.innerHTML = `<div style="text-align:center; color:#888; padding:20px;">尚無【${activeTab}】的收藏單字。可以在學習卡片中按 🔖 儲存！</div>`;
+            const displayTab = activeTab === "全部" ? t.tabAll : (langMap[activeTab] || activeTab);
+            elWordbookList.innerHTML = `<div style="text-align:center; color:#888; padding:20px;">[ ${displayTab} ] ${t.emptyWordbook}</div>`;
             return;
         }
 
         filtered.forEach(w => {
             const meaningsHtml = w.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join(' ');
+            const displayLang = langMap[w.language] || w.language;
             const cardHtml = `
                 <div class="saved-card">
                     <button class="delete-btn" onclick="window.deleteSavedWord(${w.id})">🗑️</button>
-                    <span class="lang-badge">${w.language}</span>
+                    <span class="lang-badge">${displayLang}</span>
                     <div style="font-size: 1.4rem; font-weight: bold; margin-top: 4px;">${w.word}</div>
                     <div class="pronunciation" style="font-size:0.95rem;">[ ${w.pronunciation || ''} ]</div>
                     <div style="margin: 6px 0;">${meaningsHtml}</div>
@@ -779,32 +956,41 @@ JSON 回傳格式要求：
         });
     }
 
-    // 完成學習
+    // 完成學習 (Feature 4：每日限一次)
     elBtnCompleteAll.addEventListener('click', () => {
         const today = getTodayStr();
-        userData.points += 10;
+        const t = i18n[userData.uiLang];
 
-        if (userData.lastLearnDate !== today) {
-            userData.totalDays += 1;
-
-            if (userData.lastLearnDate) {
-                const last = new Date(userData.lastLearnDate);
-                const curr = new Date(today);
-                const diffDays = Math.ceil(Math.abs(curr - last) / (1000 * 60 * 60 * 24));
-
-                if (diffDays === 1) {
-                    userData.streak += 1;
-                } else if (diffDays > 1) {
-                    userData.streak = 1;
-                }
-            } else {
-                userData.streak = 1;
-            }
-            userData.lastLearnDate = today;
+        // 避免重複領取
+        if (userData.lastLearnDate === today) {
+            alert(t.alertAlreadyDone);
+            return;
         }
 
+        // 增加積分
+        userData.points += 10;
+        userData.totalDays += 1;
+
+        if (userData.lastLearnDate) {
+            const last = new Date(userData.lastLearnDate);
+            const curr = new Date(today);
+            const diffDays = Math.ceil(Math.abs(curr - last) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                userData.streak += 1;
+            } else if (diffDays > 1) {
+                userData.streak = 1;
+            }
+        } else {
+            userData.streak = 1;
+        }
+        
+        userData.lastLearnDate = today;
         saveData();
-        alert('🎉 太棒了！已紀錄今日學習，獲得 10 點積分！');
+        
+        // 點擊完立即反灰鎖定按鈕
+        updateDailyButtonState();
+        alert(t.alertDailyDone);
     });
 
     // 換一套單字
