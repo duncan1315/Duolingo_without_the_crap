@@ -511,6 +511,7 @@
     };
 
     let activeTab = "全部";
+    let currentDailyWords = [];
 
     // DOM 元素
     const elSettingsCard = document.getElementById('settings-card');
@@ -831,43 +832,23 @@ JSON 回傳格式要求：
         }
     }
 
-    // 渲染今日單字卡
     function renderWords(wordList) {
         elWordsContainer.innerHTML = '';
+        currentDailyWords = wordList;
         const t = i18n[userData.uiLang];
         const langMap = getLangDisplayMap();
 
-        wordList.forEach((item, index) => {
+        wordList.forEach((item, wIndex) => {
             const meaningsHtml = item.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join('');
-            
-            const breakdownHtml = item.wordBreakdown.map(b => {
-                const bDataStr = encodeURIComponent(JSON.stringify({
-                    language: item.language,
-                    word: b.word,
-                    pronunciation: b.pronunciation,
-                    meanings: [b.meaning],
-                    exampleSentence: item.exampleSentence,
-                    exampleTranslation: item.exampleTranslation
-                }));
-                return `
-                    <div class="word-chip">
-                        <button class="chip-save-btn" onclick="window.saveSingleWord('${bDataStr}')" title="存入單字庫">➕</button>
-                        <div class="chip-word">${b.word}</div>
-                        <div class="chip-pron">${b.pronunciation || ''}</div>
-                        <div class="chip-meaning">${b.meaning}</div>
-                    </div>
-                `;
-            }).join('');
 
-            const mainDataStr = encodeURIComponent(JSON.stringify({
-                language: item.language,
-                word: item.word,
-                pronunciation: item.pronunciation,
-                meanings: item.meanings,
-                exampleSentence: item.exampleSentence,
-                examplePronunciation: item.examplePronunciation,
-                exampleTranslation: item.exampleTranslation
-            }));
+            const breakdownHtml = item.wordBreakdown.map((b, bIndex) => `
+                <div class="word-chip">
+                    <button class="chip-save-btn" data-word-index="${wIndex}" data-breakdown-index="${bIndex}" title="存入單字庫">➕</button>
+                    <div class="chip-word">${b.word}</div>
+                    <div class="chip-pron">${b.pronunciation || ''}</div>
+                    <div class="chip-meaning">${b.meaning}</div>
+                </div>
+            `).join('');
 
             const displayLang = langMap[item.language] || item.language;
 
@@ -875,7 +856,7 @@ JSON 回傳格式要求：
                 <div class="lang-card">
                     <div class="card-header-row">
                         <span class="lang-badge">${displayLang}</span>
-                        <button class="btn-save-word" onclick="window.saveSingleWord('${mainDataStr}')">${t.saveWordBtn}</button>
+                        <button class="btn-save-word" data-word-index="${wIndex}">${t.saveWordBtn}</button>
                     </div>
                     <div class="word-main">${item.word}</div>
                     <div class="pronunciation">[ ${item.pronunciation} ]</div>
@@ -900,10 +881,42 @@ JSON 回傳格式要求：
         });
     }
 
-    // 全域儲存單字函數
-    window.saveSingleWord = function(encodedData) {
+    elWordsContainer.addEventListener('click', (e) => {
+        const chipBtn = e.target.closest('.chip-save-btn');
+        if (chipBtn) {
+            const item = currentDailyWords[Number(chipBtn.dataset.wordIndex)];
+            const b = item.wordBreakdown[Number(chipBtn.dataset.breakdownIndex)];
+            saveWordEntry({
+                language: item.language,
+                word: b.word,
+                pronunciation: b.pronunciation,
+                meanings: [b.meaning],
+                exampleSentence: item.exampleSentence,
+                examplePronunciation: item.examplePronunciation,
+                exampleTranslation: item.exampleTranslation,
+                wordBreakdown: item.wordBreakdown
+            });
+            return;
+        }
+
+        const mainBtn = e.target.closest('.btn-save-word');
+        if (mainBtn) {
+            const item = currentDailyWords[Number(mainBtn.dataset.wordIndex)];
+            saveWordEntry({
+                language: item.language,
+                word: item.word,
+                pronunciation: item.pronunciation,
+                meanings: item.meanings,
+                exampleSentence: item.exampleSentence,
+                examplePronunciation: item.examplePronunciation,
+                exampleTranslation: item.exampleTranslation,
+                wordBreakdown: item.wordBreakdown
+            });
+        }
+    });
+
+    function saveWordEntry(wordObj) {
         const t = i18n[userData.uiLang];
-        const wordObj = JSON.parse(decodeURIComponent(encodedData));
         const exists = userData.savedWords.some(w => w.word === wordObj.word && w.language === wordObj.language);
         
         if (exists) {
@@ -918,7 +931,7 @@ JSON 回傳格式要求：
         saveData();
         alert(`🎉 ${t.alertWordSaved} ( ${wordObj.word} )`);
         renderWordbook();
-    };
+    }
 
     // 全域刪除單字函數
     window.deleteSavedWord = function(id) {
@@ -937,6 +950,7 @@ JSON 回傳格式要求：
         if (activeTab !== "全部") {
             filtered = filtered.filter(w => w.language === activeTab);
         }
+        filtered = [...filtered].sort((a, b) => a.word.localeCompare(b.word));
 
         if (filtered.length === 0) {
             const displayTab = activeTab === "全部" ? t.tabAll : (langMap[activeTab] || activeTab);
@@ -947,6 +961,17 @@ JSON 回傳格式要求：
         filtered.forEach(w => {
             const meaningsHtml = w.meanings.map(m => `<span class="meaning-tag">${m}</span>`).join(' ');
             const displayLang = langMap[w.language] || w.language;
+            const breakdownHtml = (w.wordBreakdown && w.wordBreakdown.length > 0) ? `
+                <div class="breakdown-grid" style="margin-top:8px;">
+                    ${w.wordBreakdown.map(b => `
+                        <div class="word-chip">
+                            <div class="chip-word">${b.word}</div>
+                            <div class="chip-pron">${b.pronunciation || ''}</div>
+                            <div class="chip-meaning">${b.meaning}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
             const cardHtml = `
                 <div class="saved-card">
                     <button class="delete-btn" onclick="window.deleteSavedWord(${w.id})">🗑️</button>
@@ -959,6 +984,7 @@ JSON 回傳格式要求：
                             <div style="font-weight:bold;">${w.exampleSentence}</div>
                             <div style="color:#666;">${w.examplePronunciation || ''}</div>
                             <div style="color:#444;">${w.exampleTranslation || ''}</div>
+                            ${breakdownHtml}
                         </div>
                     ` : ''}
                 </div>
